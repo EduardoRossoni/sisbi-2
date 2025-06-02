@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react'
 import { EstabelecimentosTable } from '@/components/estabelecimentos-table'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
+import { BarChart3, Table, MapPin } from 'lucide-react'
+import EstatisticasPorEstado from '@/components/estatisticas-por-estado'
 
 interface Estabelecimento {
   idEstabSisbi: number
@@ -31,16 +34,14 @@ export default function Home() {
   const [estabelecimentos, setEstabelecimentos] = useState<Estabelecimento[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [visualizacao, setVisualizacao] = useState<'tabela' | 'estatisticas'>('estatisticas')
   const [stats, setStats] = useState({
     total: 0,
     ativos: 0,
     pendentes: 0,
     outros: 0,
-    totalCapacidade: 0,
-    estabelecimentosComCapacidade: 0,
-    capacidadeBovino: 0,
-    capacidadeBovinoHora: 0,
-    capacidadeSuino: 0
+    comBovinos: 0,
+    capacidadeTotalBovinos: 0
   })
 
   useEffect(() => {
@@ -68,32 +69,16 @@ export default function Home() {
         else if (item.csSituacaoEstabelecimento === 'P') acc.pendentes++
         else acc.outros++
         
-        // Calcular capacidades
-        const totalCapacidadeItem = item.capacidades.bovino + item.capacidades.suino + 
-                                   item.capacidades.caprino + item.capacidades.ovino + 
-                                   item.capacidades.bubalino + item.capacidades.outras
-        
-        if (totalCapacidadeItem > 0 || item.capacidades.bovinoHora > 0) {
-          acc.estabelecimentosComCapacidade++
-          acc.totalCapacidade += totalCapacidadeItem
+        // Verificar se tem bovinos
+        if (item.capacidades?.bovino > 0 || item.capacidades?.bovinoHora > 0) {
+          acc.comBovinos++
         }
         
-        acc.capacidadeBovino += item.capacidades.bovino
-        acc.capacidadeBovinoHora += item.capacidades.bovinoHora
-        acc.capacidadeSuino += item.capacidades.suino
+        // Somar capacidade total de bovinos
+        acc.capacidadeTotalBovinos += (item.capacidades?.bovino || 0)
         
         return acc
-      }, { 
-        total: 0, 
-        ativos: 0, 
-        pendentes: 0, 
-        outros: 0,
-        totalCapacidade: 0,
-        estabelecimentosComCapacidade: 0,
-        capacidadeBovino: 0,
-        capacidadeBovinoHora: 0,
-        capacidadeSuino: 0
-      })
+      }, { total: 0, ativos: 0, pendentes: 0, outros: 0, comBovinos: 0, capacidadeTotalBovinos: 0 })
       
       setStats(stats)
     } catch (err) {
@@ -112,8 +97,8 @@ export default function Home() {
             <Skeleton className="h-4 w-96" />
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => (
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {Array.from({ length: 5 }).map((_, i) => (
               <Card key={i}>
                 <CardHeader className="pb-2">
                   <Skeleton className="h-4 w-20" />
@@ -178,12 +163,12 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Cards de estatísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Cards de estatísticas gerais */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">
-                Total de Estabelecimentos
+                Total
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -219,119 +204,86 @@ export default function Home() {
           
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Outros
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-600">
-                {stats.outros.toLocaleString()}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Novos cards de capacidade */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-blue-600">
-                Com Capacidade de Abate
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                {stats.estabelecimentosComCapacidade.toLocaleString()}
-              </div>
-              <div className="text-xs text-gray-500">
-                {((stats.estabelecimentosComCapacidade / stats.total) * 100).toFixed(1)}% do total
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-purple-600">
-                Capacidade Total de Abate
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-600">
-                {stats.totalCapacidade.toLocaleString()}
-              </div>
-              <div className="text-xs text-gray-500">
-                animais/dia
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-amber-600">
-                Abate de Bovinos (dia)
+                Com Bovinos
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-amber-600">
-                {stats.capacidadeBovino.toLocaleString()}
-              </div>
-              <div className="text-xs text-gray-500">
-                animais/dia
+                {stats.comBovinos.toLocaleString()}
               </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-orange-600">
-                Abate de Bovinos (hora)
+              <CardTitle className="text-sm font-medium text-blue-600">
+                Cap. Bovinos/dia
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">
-                {stats.capacidadeBovinoHora.toLocaleString()}
-              </div>
-              <div className="text-xs text-gray-500">
-                animais/hora
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-pink-600">
-                Abate de Suínos
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-pink-600">
-                {stats.capacidadeSuino.toLocaleString()}
-              </div>
-              <div className="text-xs text-gray-500">
-                animais/dia
+              <div className="text-xl font-bold text-blue-600">
+                {stats.capacidadeTotalBovinos.toLocaleString()}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Tabela */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Estabelecimentos</CardTitle>
-            <CardDescription>
-              Lista de estabelecimentos registrados no SISBI com capacidade de abate por espécie
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <EstabelecimentosTable data={estabelecimentos} />
-          </CardContent>
-        </Card>
+        {/* Controles de visualização */}
+        <div className="flex items-center gap-2 border-b">
+          <Button
+            variant={visualizacao === 'estatisticas' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setVisualizacao('estatisticas')}
+            className="gap-2"
+          >
+            <BarChart3 className="h-4 w-4" />
+            Estatísticas por Estado
+          </Button>
+          <Button
+            variant={visualizacao === 'tabela' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setVisualizacao('tabela')}
+            className="gap-2"
+          >
+            <Table className="h-4 w-4" />
+            Tabela de Estabelecimentos
+          </Button>
+        </div>
+
+        {/* Conteúdo baseado na visualização selecionada */}
+        {visualizacao === 'estatisticas' ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Estatísticas por Estado
+              </CardTitle>
+              <CardDescription>
+                Distribuição de estabelecimentos por unidade federativa
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <EstatisticasPorEstado data={estabelecimentos} />
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Table className="h-5 w-5" />
+                Estabelecimentos
+              </CardTitle>
+              <CardDescription>
+                Lista detalhada de estabelecimentos registrados no SISBI
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <EstabelecimentosTable data={estabelecimentos} />
+            </CardContent>
+          </Card>
+        )}
       </div>
-
-      {/* Footer */}
-      <footer className="mt-16 py-8 border-t border-gray-200">
-        <div className="text-center text-gray-600">
-          <p>Desenvolvido Por: <span className="font-semibold">Eduardo Rossoni</span></p>
-        </div>
-      </footer>
     </div>
   )
 }

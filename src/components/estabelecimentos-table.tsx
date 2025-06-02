@@ -12,7 +12,8 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search, FileSpreadsheet } from 'lucide-react'
+import { useExcelExport } from '@/hooks/useExcelExport'
 
 interface Estabelecimento {
   idEstabSisbi: number
@@ -46,6 +47,7 @@ export function EstabelecimentosTable({ data }: EstabelecimentosTableProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState('')
   const [filtroBovinosAtivo, setFiltroBovinosAtivo] = useState(false)
+  const { exportToExcel, isExporting } = useExcelExport()
 
   // Filtrar dados baseado na busca e filtro de bovinos
   const filteredData = useMemo(() => {
@@ -88,6 +90,10 @@ export function EstabelecimentosTable({ data }: EstabelecimentosTableProps) {
     setCurrentPage(1)
   }
 
+  const handleExport = async () => {
+    await exportToExcel(filteredData, searchTerm, filtroBovinosAtivo)
+  }
+
   const getSituacaoBadge = (situacao: string) => {
     switch (situacao) {
       case 'A':
@@ -117,33 +123,71 @@ export function EstabelecimentosTable({ data }: EstabelecimentosTableProps) {
   return (
     <div className="space-y-4">
       {/* Barra de busca e filtros */}
-      <div className="flex items-center space-x-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            placeholder="Buscar por nome, CNPJ, UF ou município..."
-            value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="pl-10"
-          />
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex items-center space-x-2 flex-1">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Buscar por nome, CNPJ, UF ou município..."
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Button
+            variant={filtroBovinosAtivo ? "default" : "outline"}
+            size="sm"
+            onClick={toggleFiltroBovinos}
+            className={filtroBovinosAtivo ? "bg-amber-600 hover:bg-amber-700" : ""}
+          >
+            🐄 Apenas Bovinos
+          </Button>
         </div>
-        <Button
-          variant={filtroBovinosAtivo ? "default" : "outline"}
-          size="sm"
-          onClick={toggleFiltroBovinos}
-          className={filtroBovinosAtivo ? "bg-amber-600 hover:bg-amber-700" : ""}
-        >
-          🐄 Apenas Bovinos
-        </Button>
-        <div className="text-sm text-gray-500">
-          {filteredData.length} de {data.length} registros
-          {filtroBovinosAtivo && (
-            <div className="text-xs text-amber-600 font-medium">
-              Filtro bovinos ativo
-            </div>
-          )}
+
+        <div className="flex items-center gap-3">
+          <div className="text-sm text-gray-500">
+            {filteredData.length} de {data.length} registros
+            {filtroBovinosAtivo && (
+              <div className="text-xs text-amber-600 font-medium">
+                Filtro bovinos ativo
+              </div>
+            )}
+          </div>
+
+          {/* Botão de exportação */}
+          <Button
+            onClick={handleExport}
+            disabled={isExporting || filteredData.length === 0}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
+            {isExporting ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                Exportando...
+              </>
+            ) : (
+              <>
+                <FileSpreadsheet className="h-4 w-4" />
+                Exportar
+              </>
+            )}
+          </Button>
         </div>
       </div>
+
+      {/* Informações sobre a exportação */}
+      {filtroBovinosAtivo && (
+        <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 bg-amber-500 rounded-full"></div>
+            <span className="text-sm text-amber-700">
+              Filtro "Apenas bovinos" ativo - A exportação incluirá apenas estabelecimentos com capacidade de abate de bovinos e somente os dados de bovinos
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Tabela */}
       <div className="border rounded-lg overflow-x-auto">
